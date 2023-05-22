@@ -70,7 +70,7 @@ impl Cz8pc4 {
                                             let pixel_y = y + head_y + i as u32 * 8;
                                             if pixel_x < page_width && pixel_y < page_height {
                                                 img.put_pixel(pixel_x, pixel_y, pixel);
-                                                covered_y = covered_y.max(head_y);
+                                                covered_y = covered_y.max(pixel_y);
                                             }
                                         } else {
                                             if p_byte >> (7-y) & 1 != 0 {
@@ -93,7 +93,7 @@ impl Cz8pc4 {
                                                         }
                                                     }
                                                     img.put_pixel(pixel_x, pixel_y, pixel);
-                                                    covered_y = covered_y.max(head_y);
+                                                    covered_y = covered_y.max(pixel_y);
                                                 }
                                             }
                                         }
