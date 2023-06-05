@@ -1,5 +1,9 @@
 use std::io::Read;
+use std::sync::Mutex;
 use image::RgbImage;
+
+const PAGE_WIDTH: u32 = 2988;
+const PAGE_HEIGHT: u32 = 2000;
 
 pub struct Cz8pc4 {
 
@@ -7,19 +11,15 @@ pub struct Cz8pc4 {
 
 impl Cz8pc4 {
     pub fn create_image() -> RgbImage {
-        let page_width = 3000;
-        let page_height = 2000;
-        RgbImage::from_pixel(page_width, page_height, image::Rgb([255,255,255]))
+        RgbImage::from_pixel(PAGE_WIDTH, PAGE_HEIGHT, image::Rgb([255,255,255]))
     }
 
-    pub fn decode(input: &mut dyn Read, img: &mut RgbImage) -> (u32, u32) {
+    pub fn decode(input: &mut dyn Read, img_mutex: &Mutex<RgbImage>) -> (u32, u32) {
         let mut head_y = 0;
         let mut head_x = 0;
         let mut covered_x = 0;
         let mut covered_y = 0;
         let mut color = 0; // 0 = black, 1 = yellow, 2 = magenta, 3 = cyan
-        let page_width = img.width();
-        let page_height = img.height();
         loop {
             let mut c: [u8; 1] = [0; 1];
             match input.read_exact(&mut c) {
@@ -50,14 +50,18 @@ impl Cz8pc4 {
                             input.read_exact(&mut b).unwrap();
                         }
                         0x4d => { // 48 dot
+                            println!("got line");
                             let mut col_count_bytes: [u8; 2] = [0; 2];
                             input.read_exact(&mut col_count_bytes).unwrap();
-                            let col_count = 3000.min(u16::from_be_bytes(col_count_bytes) as u32);
+                            let col_count = PAGE_WIDTH.min(u16::from_be_bytes(col_count_bytes) as u32);
                             for x in 0..col_count {
                                 let mut p: [u8; 6] = [0; 6];
                                 if !input.read_exact(&mut p).is_ok() {
                                     continue;
                                 }
+                                let mut img = img_mutex.lock().unwrap();
+                                let page_width = img.width();
+                                let page_height = img.height();
                                 for (i, p_byte) in p.iter().enumerate() {
                                     for y in 0..8 {
                                         if color == 0 {
@@ -99,6 +103,7 @@ impl Cz8pc4 {
                                         }
                                     }
                                 }
+                                drop(img);
                             }
                             head_x += col_count;
                             covered_x = covered_x.max(head_x);
