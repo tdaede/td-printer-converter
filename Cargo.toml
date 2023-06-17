@@ -8,10 +8,3 @@ edition = "2021"
 [dependencies]
 clap = { version = "4.2.7", features = ["derive"] }
 image = { version = "0.24.6", features = ["png"], default-features=false }
-ipp = { version = "4.0.0", features = ["client"], default-features=false }
-serialport = "4.2.0"
-turbojpeg = { version = "0.5.2", features = ["image"] }
-
-[dependencies.gtk]
-version = "0.6"
-package = "gtk4"
