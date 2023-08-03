@@ -11,6 +11,7 @@ pub trait Printer {
 #[derive(Default)]
 pub struct Cz8pc4 {
     head_y: u32,
+    covered_x: u32,
     covered_y: u32,
     color: u32, // 0 = black, 1 = yellow, 2 = magenta, 3 = cyan
 }
@@ -28,7 +29,7 @@ impl Printer for Cz8pc4 {
     fn decode(&mut self, input: &mut dyn Read, img_mutex: &Mutex<RgbImage>) -> (u32, u32) {
         let head_y = &mut self.head_y;
         let mut head_x = 0;
-        let mut covered_x = 0;
+        let covered_x = &mut self.covered_x;
         let covered_y = &mut self.covered_y;
         loop {
             let mut c: [u8; 1] = [0; 1];
@@ -115,7 +116,7 @@ impl Printer for Cz8pc4 {
                                 drop(img);
                             }
                             head_x += col_count;
-                            covered_x = covered_x.max(head_x);
+                            *covered_x = (*covered_x).max(head_x);
                         },
                         _ => {
                             eprintln!("Warning: unsupported escape code {:x}", b[0]);
@@ -140,7 +141,7 @@ impl Printer for Cz8pc4 {
                 _ => {}
             };
         }
-        (covered_x, *covered_y)
+        (*covered_x, *covered_y)
     }
 }
 
