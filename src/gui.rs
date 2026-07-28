@@ -85,14 +85,14 @@ fn build_ui(application: &gtk::Application) {
 
     let img_arc_mutex_redraw = Arc::clone(&img_arc_mutex);
 
-    let update_printer = clone!(@strong drop_down => move || {
+    let update_printer = clone!(#[strong] drop_down, move || {
         let config = PrinterConfig {
             printer: supported_printers[drop_down.selected() as usize].to_string()
         };
         tx_config.send(config).unwrap();
     });
 
-    save_button.connect_clicked(clone!(@strong img_arc_mutex, @strong page_info_arc_mutex => move |_| {
+    save_button.connect_clicked(clone!(#[strong] img_arc_mutex, #[strong] page_info_arc_mutex,  move |_| {
         let img = img_arc_mutex.lock().unwrap();
         let page_info = page_info_arc_mutex.lock().unwrap();
         let mut start_y: u32 = u32::MAX;
@@ -112,7 +112,7 @@ fn build_ui(application: &gtk::Application) {
     }));
 
 
-    print_button.connect_clicked(clone!(@strong img_arc_mutex, @strong page_info_arc_mutex => move |_| {
+    print_button.connect_clicked(clone!(#[strong] img_arc_mutex, #[strong] page_info_arc_mutex, move |_| {
         let img = img_arc_mutex.lock().unwrap();
         let page_info = page_info_arc_mutex.lock().unwrap();
         let mut start_y: u32 = u32::MAX;
@@ -131,14 +131,14 @@ fn build_ui(application: &gtk::Application) {
         ipp_print(&"http://CP1500fb99b1.local:631".to_string(), img_cropped);
     }));
 
-    clear_button.connect_clicked(clone!(@strong update_printer => move |_| {
+    clear_button.connect_clicked(clone!(#[strong] update_printer, move |_| {
         update_printer();
     }));
     drop_down.connect_notify_local(Some("selected"), move|_,_| {
         update_printer();
     });
 
-    glib::timeout_add_local(Duration::from_millis(16), clone!(@strong picture => move || {
+    glib::timeout_add_local(Duration::from_millis(16), clone!(#[strong] picture, move || {
         let img = img_arc_mutex_redraw.lock().unwrap();
         let pixbuf = gdk_pixbuf::Pixbuf::from_bytes(&glib::Bytes::from(img.as_raw()),
                                                     gdk_pixbuf::Colorspace::Rgb, false, 8,
