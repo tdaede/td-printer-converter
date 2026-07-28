@@ -147,7 +147,7 @@ fn build_ui(application: &gtk::Application) {
         let texture = gdk::Texture::for_pixbuf(&pixbuf);
         picture.set_paintable(Some(&texture));
         picture.queue_draw();
-        glib::Continue(true)
+        glib::ControlFlow::Continue
     }));
 
     let img_arc_mutex_thread = Arc::clone(&img_arc_mutex);
