@@ -1,8 +1,8 @@
 use gtk::prelude::*;
 
 use gtk::{gdk, gdk_pixbuf, glib, Orientation};
-use glib::{MainContext, PRIORITY_DEFAULT, clone};
-use std::sync::{Arc, Mutex, mpsc::channel, atomic::AtomicU32, atomic::Ordering};
+use glib::{clone};
+use std::sync::{Arc, Mutex, mpsc::channel};
 use std::time::Duration;
 use std::thread;
 use std::ops::Deref;
@@ -10,7 +10,6 @@ use serialport;
 use image::RgbImage;
 use image::imageops;
 
-use crate::Args;
 use crate::ipp_print;
 use crate::printer::Printer;
 use crate::printer::*;
@@ -25,7 +24,7 @@ pub(crate) fn gui_main() {
     application.run_with_args(&cli_args);
 }
 
-struct printer_config {
+struct PrinterConfig {
     printer: String
 }
 
@@ -87,7 +86,7 @@ fn build_ui(application: &gtk::Application) {
     let img_arc_mutex_redraw = Arc::clone(&img_arc_mutex);
 
     let update_printer = clone!(@strong drop_down => move || {
-        let config = printer_config {
+        let config = PrinterConfig {
             printer: supported_printers[drop_down.selected() as usize].to_string()
         };
         tx_config.send(config).unwrap();

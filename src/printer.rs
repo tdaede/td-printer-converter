@@ -153,12 +153,12 @@ pub struct Cz6pv1 {
 impl Cz6pv1 {
     const PAGE_WIDTH: u32 = 0x200;
     const PAGE_HEIGHT: u32 = 992;
-    const Y_MIN: u16 = 0x80;
-    const Y_MAX: u16 = 0xBF;
-    const M_MIN: u16 = 0x40;
-    const M_MAX: u16 = 0x7E;
-    const C_MIN: u16 = 0x00;
-    const C_MAX: u16 = 0x3E;
+    const _Y_MIN: u16 = 0x80;
+    const _Y_MAX: u16 = 0xBF;
+    const _M_MIN: u16 = 0x40;
+    const _M_MAX: u16 = 0x7E;
+    const _C_MIN: u16 = 0x00;
+    const _C_MAX: u16 = 0x3E;
 }
 
 impl Printer for Cz6pv1 {
@@ -184,7 +184,7 @@ impl Printer for Cz6pv1 {
                         let mut img = img_mutex.lock().unwrap();
                         for (x, val) in line.into_iter().enumerate() {
                             let mut pixel = img.get_pixel(x as u32, y as u32).clone();
-                            let half_offset = if y > 511 { 7 } else { 0 };
+                            let _half_offset = if y > 511 { 7 } else { 0 };
                             let val_scaled = if y < 512 {
                                 (val & 0b00111111) * 4
                             } else {
