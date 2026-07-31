@@ -216,3 +216,146 @@ impl Printer for Cz6pv1 {
         (Cz6pv1::PAGE_WIDTH, Cz6pv1::PAGE_HEIGHT)
     }
 }
+
+#[derive(Default)]
+pub struct Pcpr101 {
+    head_y: u32,
+    covered_x: u32,
+    covered_y: u32,
+    color: u32, // 0 = black, 1 = yellow, 2 = magenta, 3 = cyan
+}
+
+impl Pcpr101 {
+    pub const PAGE_WIDTH: u32 = 2988;
+    pub const PAGE_HEIGHT: u32 = 2000;
+}
+
+impl Printer for Pcpr101 {
+    fn create_image(&self) -> RgbImage {
+        RgbImage::from_pixel(Pcpr101::PAGE_WIDTH, Pcpr101::PAGE_HEIGHT, image::Rgb([255,255,255]))
+    }
+
+    fn decode(&mut self, input: &mut dyn Read, img_mutex: &Mutex<RgbImage>) -> (u32, u32) {
+        let head_y = &mut self.head_y;
+        let mut head_x = 0;
+        let covered_x = &mut self.covered_x;
+        let covered_y = &mut self.covered_y;
+        loop {
+            let mut c: [u8; 1] = [0; 1];
+            match input.read_exact(&mut c) {
+                Ok(()) => {},
+                Err(_) => break,
+            };
+            match c[0] {
+                // escape
+                0x1b => {
+                    let mut b: [u8; 1] = [0; 1];
+                    input.read_exact(&mut b).unwrap();
+                    match b[0] {
+                        0x43 => {
+                            // select color
+                            let mut color: [u8; 1] = [0; 1];
+                            input.read_exact(&mut color).unwrap();
+                            self.color = match color[0] {
+                                b'0' => 0,
+                                _ => 0,
+                            };
+                            eprintln!("selected color {}", self.color);
+                        }
+                        0x44 => {
+                            // copy mode
+                        },
+                        0x4c => {
+                            // left margin set
+                            let mut asdf: [u8; 3] = [0; 3];
+                            input.read_exact(&mut asdf).unwrap();
+                        }
+                        0x54 => {
+                            // line break setting
+                            let mut asdf: [u8; 2] = [0; 2];
+                            input.read_exact(&mut asdf).unwrap();
+                        }
+                        0x4a => { // 24 dot
+                            let mut col_count_bytes: [u8; 4] = [0; 4];
+                            input.read_exact(&mut col_count_bytes).unwrap();
+                            let col_count = Cz8pc4::PAGE_WIDTH.min(std::str::from_utf8(&col_count_bytes).unwrap().parse::<u32>().unwrap());
+                            for x in 0..col_count {
+                                let mut p: [u8; 3] = [0; 3];
+                                if !input.read_exact(&mut p).is_ok() {
+                                    continue;
+                                }
+                                let mut img = img_mutex.lock().unwrap();
+                                let page_width = img.width();
+                                let page_height = img.height();
+                                for (i, p_byte) in p.iter().enumerate() {
+                                    for y in 0..8 {
+                                        if self.color == 0 {
+                                            let pixel = match p_byte >> y & 1 {
+                                                0 => image::Rgb([255,255,255]),
+                                                1 => image::Rgb([0,0,0]),
+                                                _ => unreachable!(),
+                                            };
+                                            let pixel_x = x + head_x;
+                                            let pixel_y = y + *head_y + i as u32 * 8;
+                                            if pixel_x < page_width && pixel_y < page_height {
+                                                img.put_pixel(pixel_x, pixel_y, pixel);
+                                                *covered_y = (*covered_y).max(pixel_y);
+                                            }
+                                        } else {
+                                            if p_byte >> y & 1 != 0 {
+                                                let pixel_x = x + head_x;
+                                                let pixel_y = y + *head_y + i as u32 * 8;
+                                                if pixel_x < page_width && pixel_y < page_height {
+                                                    let mut pixel = img.get_pixel(pixel_x, pixel_y).clone();
+                                                    match self.color {
+                                                        1 => {
+                                                            pixel[2] = 0;
+                                                        },
+                                                        2 => {
+                                                            pixel[1] = 0;
+                                                        },
+                                                        3 => {
+                                                            pixel[0] = 0;
+                                                        },
+                                                        _ => {
+                                                            unreachable!();
+                                                        }
+                                                    }
+                                                    img.put_pixel(pixel_x, pixel_y, pixel);
+                                                    *covered_y = (*covered_y).max(pixel_y);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                drop(img);
+                            }
+                            head_x += col_count;
+                            *covered_x = (*covered_x).max(head_x);
+                        },
+                        _ => {
+                            eprintln!("Warning: unsupported escape code {:x}", b[0]);
+                        },
+                    }
+                },
+                // line feed
+                0x0a => {
+                    head_x = 0;
+                    *head_y += 24;
+                },
+                // carriage return / color change
+                0x0d => {
+                    head_x = 0;
+                    if self.color > 0 {
+                        self.color += 1;
+                        if self.color > 3 {
+                            self.color = 1;
+                        }
+                    }
+                }
+                _ => {}
+            };
+        }
+        (*covered_x, *covered_y)
+    }
+}

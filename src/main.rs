@@ -93,6 +93,7 @@ fn main() {
     let mut printer: Box<dyn Printer> = match args.printer.as_str() {
         "cz-8pc4" => Box::new(Cz8pc4::default()),
         "cz-6pv1" => Box::new(Cz6pv1{}),
+        "pc-pr101" => Box::new(Pcpr101::default()),
         _ => panic!("Unknown printer"),
     };
 
