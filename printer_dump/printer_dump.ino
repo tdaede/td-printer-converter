@@ -13,16 +13,15 @@ void setup() {
   pinMode(50, OUTPUT); // busy
   digitalWrite(52, LOW);
   pinMode(52, OUTPUT); // gnd
-  digitalWrite(52, LOW);
-  pinMode(52, OUTPUT); // gnd
-  Serial.begin(500000);
+  Serial.begin(1000000);
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
   noInterrupts();
   while (PING & 1 << 1); // wait for strobe
-  //delayMicroseconds(20);
+  PORTB |= 1 << 3; // busy high
+  //delayMicroseconds(10);
   uint8_t PL = PINL;
   uint8_t PG = PING;
   uint8_t byte = !!(PG & 1 << 0) << 0 |
@@ -34,11 +33,9 @@ void loop() {
                  !!(PL & 1 << 2) << 6 |
                  !!(PL & 1 << 1) << 7;
   while (!(PING & 1 << 1));
-  //delayMicroseconds(1000);
-  PORTB |= 1 << 3; // busy high
   interrupts();
   Serial.write(byte);
-  //delayMicroseconds(10000);
+  //Serial.flush();
   noInterrupts();
   PORTB &= ~(1 << 3); // busy low
 }

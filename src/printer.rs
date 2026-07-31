@@ -270,6 +270,11 @@ impl Printer for Pcpr101 {
                         0x44 => {
                             // copy mode
                         },
+                        0x46 => {
+                            // dot addressing
+                            let mut asdf: [u8; 4] = [0; 4];
+                            input.read_exact(&mut asdf).unwrap();
+                        }
                         0x4c => {
                             // left margin set
                             let mut asdf: [u8; 3] = [0; 3];
@@ -283,7 +288,7 @@ impl Printer for Pcpr101 {
                         0x4a => { // 24 dot
                             let mut col_count_bytes: [u8; 4] = [0; 4];
                             input.read_exact(&mut col_count_bytes).unwrap();
-                            let col_count = Cz8pc4::PAGE_WIDTH.min(std::str::from_utf8(&col_count_bytes).unwrap().parse::<u32>().unwrap());
+                            let col_count = (Cz8pc4::PAGE_WIDTH*3).min(std::str::from_utf8(&col_count_bytes).unwrap().parse::<u32>().unwrap());
                             for x in 0..col_count {
                                 let mut p: [u8; 3] = [0; 3];
                                 if !input.read_exact(&mut p).is_ok() {
@@ -329,6 +334,11 @@ impl Printer for Pcpr101 {
                             head_x += col_count;
                             *covered_x = (*covered_x).max(head_x);
                         },
+                        0x63 => {
+                            // soft reset
+                            let mut asdf: [u8; 1] = [0; 1];
+                            input.read_exact(&mut asdf).unwrap();
+                        }
                         _ => {
                             eprintln!("Warning: unsupported escape code {:x}", b[0]);
                         },

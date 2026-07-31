@@ -101,7 +101,7 @@ fn main() {
         gui::gui_main();
     } else if let Some(serial_port_name) = args.serial {
         // serial mode
-        let mut serial_port = serialport::new(&serial_port_name, 500_000).timeout(Duration::from_secs(60)).open().expect("Failed to open port");
+        let mut serial_port = serialport::new(&serial_port_name, 1_000_000).timeout(Duration::from_secs(60)).open().expect("Failed to open port");
         eprintln!("Serial port opened on {}", serial_port_name);
         loop {
             let mut print_job_bytes = Vec::new();

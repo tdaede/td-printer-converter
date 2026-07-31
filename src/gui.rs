@@ -54,6 +54,7 @@ fn build_ui(application: &gtk::Application) {
     let supported_printers = [
         "cz-8pc4",
         "cz-6pv1",
+        "pc-pr101",
     ];
 
     let drop_down = gtk::DropDown::from_strings(&supported_printers);
@@ -153,7 +154,7 @@ fn build_ui(application: &gtk::Application) {
     let img_arc_mutex_thread = Arc::clone(&img_arc_mutex);
     thread::spawn(move || {
         let mut printer: Box<dyn Printer> = Box::new(Cz8pc4::default());
-        let mut serial_port = serialport::new("/dev/ttyACM0", 500000).open().expect("Failed to open port");
+        let mut serial_port = serialport::new("/dev/ttyACM0", 1000000).open().expect("Failed to open port");
         serial_port.set_timeout(Duration::from_secs(1)).unwrap();
         loop {
             let (covered_x_decode, covered_y_decode) = printer.decode(&mut serial_port, &img_arc_mutex_thread);
@@ -165,6 +166,7 @@ fn build_ui(application: &gtk::Application) {
                 printer = match config.printer.as_str() {
                     "cz-8pc4" => Box::new(Cz8pc4::default()),
                     "cz-6pv1" => Box::new(Cz6pv1::default()),
+                    "pc-pr101" => Box::new(Pcpr101::default()),
                     _ => unreachable!(),
                 };
                 let mut img = img_arc_mutex.lock().unwrap();
