@@ -226,8 +226,8 @@ pub struct Pcpr101 {
 }
 
 impl Pcpr101 {
-    pub const PAGE_WIDTH: u32 = 2988;
-    pub const PAGE_HEIGHT: u32 = 2000;
+    pub const PAGE_WIDTH: u32 = 1494;
+    pub const PAGE_HEIGHT: u32 = 1000;
 }
 
 impl Printer for Pcpr101 {
@@ -258,9 +258,14 @@ impl Printer for Pcpr101 {
                             input.read_exact(&mut color).unwrap();
                             self.color = match color[0] {
                                 b'0' => 0,
-                                _ => 0,
+                                b'3' => 2,
+                                b'5' => 3,
+                                b'6' => 1,
+                                _ => {
+                                    eprintln!("invalid color selected: {}", color[0]);
+                                    0
+                                },
                             };
-                            eprintln!("selected color {}", self.color);
                         }
                         0x44 => {
                             // copy mode
@@ -289,41 +294,32 @@ impl Printer for Pcpr101 {
                                 let page_height = img.height();
                                 for (i, p_byte) in p.iter().enumerate() {
                                     for y in 0..8 {
-                                        if self.color == 0 {
-                                            let pixel = match p_byte >> y & 1 {
-                                                0 => image::Rgb([255,255,255]),
-                                                1 => image::Rgb([0,0,0]),
-                                                _ => unreachable!(),
-                                            };
+                                        if p_byte >> y & 1 != 0 {
                                             let pixel_x = x + head_x;
                                             let pixel_y = y + *head_y + i as u32 * 8;
                                             if pixel_x < page_width && pixel_y < page_height {
+                                                let mut pixel = img.get_pixel(pixel_x, pixel_y).clone();
+                                                match self.color {
+                                                    0 => {
+                                                        pixel[0] = 0;
+                                                        pixel[1] = 0;
+                                                        pixel[2] = 0;
+                                                    }
+                                                    1 => {
+                                                        pixel[2] = 0;
+                                                    },
+                                                    2 => {
+                                                        pixel[1] = 0;
+                                                    },
+                                                    3 => {
+                                                        pixel[0] = 0;
+                                                    },
+                                                    _ => {
+                                                        unreachable!();
+                                                    }
+                                                }
                                                 img.put_pixel(pixel_x, pixel_y, pixel);
                                                 *covered_y = (*covered_y).max(pixel_y);
-                                            }
-                                        } else {
-                                            if p_byte >> y & 1 != 0 {
-                                                let pixel_x = x + head_x;
-                                                let pixel_y = y + *head_y + i as u32 * 8;
-                                                if pixel_x < page_width && pixel_y < page_height {
-                                                    let mut pixel = img.get_pixel(pixel_x, pixel_y).clone();
-                                                    match self.color {
-                                                        1 => {
-                                                            pixel[2] = 0;
-                                                        },
-                                                        2 => {
-                                                            pixel[1] = 0;
-                                                        },
-                                                        3 => {
-                                                            pixel[0] = 0;
-                                                        },
-                                                        _ => {
-                                                            unreachable!();
-                                                        }
-                                                    }
-                                                    img.put_pixel(pixel_x, pixel_y, pixel);
-                                                    *covered_y = (*covered_y).max(pixel_y);
-                                                }
                                             }
                                         }
                                     }
@@ -346,12 +342,6 @@ impl Printer for Pcpr101 {
                 // carriage return / color change
                 0x0d => {
                     head_x = 0;
-                    if self.color > 0 {
-                        self.color += 1;
-                        if self.color > 3 {
-                            self.color = 1;
-                        }
-                    }
                 }
                 _ => {}
             };
